@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Vadim" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="spark, theory, Apache Spark, " />
+
+<meta property="og:title" content="Партиции Apache Spark "/>
+<meta property="og:url" content="/partitsii-apache-spark.html" />
+<meta property="og:description" content="Партиции Apache Spark - это движок для параллельной обработки данных на кластере. Параллелизм в Spark позволяет разработчикам параллельно и независимо выполнять задачи на сотнях машин в кластере. Все благодаря базовой концепции Spark - RDD. Под капотом эти RDD хранятся в партициях(partitions) на разных узлах кластера. По сути, партиция - это логический кусок …" />
+<meta property="og:site_name" content="sparkman.ru" />
+<meta property="og:article:author" content="Vadim" />
+<meta property="og:article:published_time" content="2024-12-05T11:30:00+03:00" />
+<meta name="twitter:title" content="Партиции Apache Spark ">
+<meta name="twitter:description" content="Партиции Apache Spark - это движок для параллельной обработки данных на кластере. Параллелизм в Spark позволяет разработчикам параллельно и независимо выполнять задачи на сотнях машин в кластере. Все благодаря базовой концепции Spark - RDD. Под капотом эти RDD хранятся в партициях(partitions) на разных узлах кластера. По сути, партиция - это логический кусок …">
+
+        <title>Партиции Apache Spark  · sparkman.ru
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.prod.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+
+
+
+    </head>
+    <body>
+        <div id="content">
+            <div class="navbar navbar-static-top">
+                <div class="navbar-inner">
+                    <div class="container-fluid">
+                        <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </a>
+                        <a class="brand" href="/"><span class=site-name>sparkman.ru</span></a>
+                        <div class="nav-collapse collapse">
+                            <ul class="nav pull-right top-menu">
+                                <li >
+                                    <a href=
+                                       "/"
+                                    >Home</a>
+                                </li>
+                                <li ><a href="/categories.html">Categories</a></li>
+                                <li ><a href="/tags.html">Tags</a></li>
+                                <li ><a href="/archives.html">Archives</a></li>
+                                <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <div class="row-fluid">
+                    <div class="span1"></div>
+                    <div class="span10">
+<article itemscope>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+        <h1>
+            <a href="/partitsii-apache-spark.html">
+                Партиции Apache Spark
+            </a>
+        </h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+            
+            <h2>Партиции</h2>
+<p>Apache Spark - это движок для параллельной обработки данных на кластере. Параллелизм в Spark позволяет разработчикам параллельно и независимо выполнять задачи на сотнях машин в кластере. Все благодаря базовой концепции Spark - RDD.<br>
+Под капотом эти RDD хранятся в партициях(partitions) на разных узлах кластера. По сути, партиция - это логический кусок большого набора данных. Он дает возможность распределить работу по кластеру, разбить задачу на более мелкие части и снизить требования к памяти для каждого узла. Партиция - это основа параллелизма в Apache Spark.<br>
+<img alt="image" src="/images/part0.drawio.png"><br>
+После того как пользователь отправил свое задание в кластер, каждая партиция передается определенному экзекьютору для дальнейшей обработки. Одновременно один экзекьютор обрабатывает только одну партицию, поэтому размер и количество партиций, передаваемых экзекьютору, прямо пропорциональны времени, которое требуется для их обработки.Вы можете манипулировать партициями, чтобы ускорить обработку данных.<br>
+<em>Давайте посмотрим, как.</em><br>
+<img alt="image" src="/images/part1.png"><br>
+Взглянув на структуру партиций, мы видим, что наши данные разделены на четыре партиции (потому что у моего ноутбука 4 ядра), и если мы применим трансформации к этому датафрейму, то работа над кажой партицией  будет выполняться в отдельном потоке (а в моем случае на каждом отдельном ядре процессора).<br>
+Зачем об этом думать?<br>
+Самая важная причина - производительность. Имея все данные, необходимые для вычислений, на одном узле, мы уменьшаем накладные расходы на перемешивание (необходимость сериализации и сетевой трафик).<br>
+Второй причиной является снижение затрат(в том числе денежной при использовании облачного кластера) - более эффективное использование кластера поможет сократить ресурсы на выполнение пользовательских заданий.  </p>
+<h2>Repartition</h2>
+<p>Первый способ управления партициями - операция repartition(переразбиения).<br>
+Под переразбиением понимается операция по уменьшению или увеличению количества партиций, на которые будут разбиты данные. Этот процесс включает в себя полную перетасовку(shuffle). Repartition является дорогостоящим(в плане затрат на ресурсы) процессом. В типичном сценарии большая часть данных должна быть сериализована, перемещена и десериализована.<br>
+<em>Пример:</em><br>
+<img alt="image" src="/images/part2.PNG"><br>
+Мы видим, что количество партиций увеличилось до 8 и данные были перераспределены по партициям.<br>
+<em>Помимо непосредственного указания количества партиций, вы можете передать имя столбца, по которому вы хотите разделить данные:</em><br>
+<img alt="image" src="/images/part3.PNG"><br>
+Мы видим, что количество партиций стало 200, и многие из этих партиций пусты. Этот момент мы обсудим чуть дальше.  </p>
+<h2>Coalesce</h2>
+<p>Второй способ управления разделами - coalesce.<br>
+Эта операция уменьшает количество партиций и позволяет избежать перетасовки. Исполнитель может безопасно оставить данные на минимальном количестве партиций, перемещая их только с избыточных узлов. Поэтому при необходимости уменьшить количество разделов лучше использовать coalesce, а не repartition.<br>
+Однако следует понимать, что это может резко снизить параллельность обработки данных - coalesce часто продвигается дальше в цепочке трансформаций и может привести к тому, что для обработки будет задействовано меньше узлов, чем хотелось бы.<br>
+<em>Пример:</em><br>
+<img alt="image" src="/images/part4.PNG">  </p>
+<h2>Партиционирование на начальном этапе</h2>
+<p>Существует четкое соответствие между тем, как данные размещаются в хранилищах данных, таких как HDFS, и тем, как Spark разбивает данные на партиции при чтении.<br>
+Если у вас есть несжатый текстовый файл размером 1 ГБ, хранящийся в HDFS, то при стандартном размере блока HDFS (128 МБ) и стандартном spark.files.maxPartitionBytes(128 МБ) он будет храниться в 8 блоках.
+ Сколько партиций будет иметь DataFrame, который вы прочитаете из этого файла?  <br>
+<em>Давайте посмотрим в коде:</em>  </p>
+<ol>
+<li>Сгенерируем текстовый файл размером в 1 ГБ (1073741824 байт).<br>
+<img alt="image" src="/images/part5.PNG"><br>
+<img alt="image" src="/images/part6.PNG">  </li>
+<li>Поместим его в HDFS и проверим размер блока<br>
+<img alt="image" src="/images/part7.png"><br>
+134217728 байт = 128 МБ</li>
+<li>Проверим кол-во партиций<br>
+<img alt="image" src="/images/part8.PNG"><br>
+Начальное количество партиций в DataFrame вычисляется на основе параметра конфигурации spark.default.parallelism. Значение этого параметра дает нам количество ядер, имеющихся в нашем распоряжении.
+Мой тестовый кластер состоит из 3 машин. Каждый машина имеет 4 ядра. Из 3 машин 1  используется драйвером. Это означает, что в нашем распоряжении имеется 8 ядер (2 * 4).</li>
+</ol>
+<h2>Перемешивание партиций (без AQE)</h2>
+<p>Самое больное место любого приложения Spark - это широкие трансформации, которые требуют информации из других партиций и вызывают перетасовку(shuffle). К сожалению, избавиться от таких трансформаций все равно не удастся, но можно уменьшить влияние shuffle на производительность.<br>
+<img alt="image" src="/images/part-shuffle.drawio.png"><br>
+Shuffle partitions - это партиции, которые используются при перемешивании данных для широких партиций. Для широких трансформаций количество партиций после  перемешивания становится равным 200. Неважно, мало у вас данные или много, или в конфигурации кластера 20 исполнителей или 100 - все равно будет 200 партиций. Да, это то, что мы видели в разделе repartition, это загадочное число.<br>
+Параметр, который управляет параллелизмом, возникающим в результате перемешивания, называется spark.sql.shuffle.partitions. Причина, по которой по умолчанию установлено значение 200, основана на реальном опыте, который показал, что это очень хорошее значение по умолчанию. Но на практике это значение обычно всегда плохое.<br>
+При работе с небольшими объемами данных обычно следует уменьшать количество партиций после перемешивания, иначе в итоге вы получите множество партиций с небольшим количеством записей в каждой партиции, что приведет к неполному использованию всех экзекьюторов и увеличит время передачи данных по сети от экзекьютора к экзекьютору.<br>
+Когда у вас слишком много данных и слишком мало партиций, это приводит к уменьшению количества задач в экзекьюторах, но увеличивает нагрузку на каждый отдельный экзекьютор и часто приводит к нехватке памяти(OutOfMemoryError). Кроме того, если вы увеличите размер партиции больше, чем доступная память в экзекьюторе, вы получите disk spill. Disk spill - это самая медленная вещь, которую вы, вероятно, сможете сделать. По сути, во время disk spill Spark помещает часть своей оперативной памяти на диск, что позволяет Sparkу хорошо работать с данными любого размера. Хотя это и не сломает ваш программу, но сделает ее супернеэффективной из-за дополнительных накладных расходов на дисковый ввод-вывод и увеличенной сборки мусора.<br>
+spark.sql.shuffle.partitions - один из наиболее часто настраиваемых параметров при работе со Spark.</p>
+
+
+             
+ 
+            
+            
+            
+
+
+
+
+
+
+            <hr/>
+        </div>
+        <section id="article-sidebar" class="span2">
+            <h4>Published</h4>
+            <time itemprop="dateCreated" datetime="2024-12-05T11:30:00+03:00">дек 5, 2024</time>
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#apache-spark-ref">Apache Spark</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#spark-ref">spark
+                    <span>3</span>
+</a></li>
+                <li><a href="/tags.html#theory-ref">theory
+                    <span>3</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+<div id="sidebar-social-link">
+</div>
+            
+
+
+
+
+
+            
+
+
+
+
+
+        </section>
+</div>
+</article>
+                    </div>
+                    <div class="span1"></div>
+                </div>
+            </div>
+        </div>
+<footer>
+
+
+
+
+    <div id="fpowered">
+        Powered by: <a href="http://getpelican.com/" title="Pelican Home Page" target="_blank" rel="nofollow noopener noreferrer">Pelican</a>
+        Theme: <a href="https://elegant.oncrashreboot.com/" title="Theme Elegant Home Page" target="_blank" rel="nofollow noopener noreferrer">Elegant</a>
+    </div>
+</footer>            <script src="//code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    <script>
+    (function () {
+        if (window.location.hash.match(/^#comment-\d+$/)) {
+            $('#comment_thread').collapse('show');
+        }
+    })();
+    window.onhashchange=function(){
+        if (window.location.hash.match(/^#comment-\d+$/))
+            window.location.reload(true);
+    }
+    $('#comment_thread').on('shown', function () {
+        var link = document.getElementById('comment-accordion-toggle');
+        var old_innerHTML = link.innerHTML;
+        $(link).fadeOut(200, function() {
+            $(this).text('Click here to hide comments').fadeIn(200);
+        });
+        $('#comment_thread').on('hidden', function () {
+            $(link).fadeOut(200, function() {
+                $(this).text(old_innerHTML).fadeIn(200);
+            });
+        })
+    })
+</script>
+
+    </body>
+    <!-- Theme: Elegant built for Pelican
+        License : MIT -->
+</html>

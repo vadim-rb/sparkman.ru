@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Vadim" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="spark, theory, Apache Spark, " />
+
+<meta property="og:title" content="Анатомия приложения Apache Spark(YARN) "/>
+<meta property="og:url" content="/anatomiia-prilozheniia-apache-sparkyarn.html" />
+<meta property="og:description" content="Архитектура Компонентами приложения Spark являются: Driver(Драйвер) Application Master(Мастер приложения) Spark Context(Контекст) Cluster Resource Manager (Менеджер ресурсов кластера) Executors (Исполнители) Spark использует архитектуру master/slave (ведущий/ведомый) с центральным координатором, называемым Driver(Драйвер), и набором исполняемых рабочих процессов, называемых Executors, которые расположены на различных узлах кластера. Драйвер Драйвер …" />
+<meta property="og:site_name" content="sparkman.ru" />
+<meta property="og:article:author" content="Vadim" />
+<meta property="og:article:published_time" content="2024-12-05T11:20:00+03:00" />
+<meta name="twitter:title" content="Анатомия приложения Apache Spark(YARN) ">
+<meta name="twitter:description" content="Архитектура Компонентами приложения Spark являются: Driver(Драйвер) Application Master(Мастер приложения) Spark Context(Контекст) Cluster Resource Manager (Менеджер ресурсов кластера) Executors (Исполнители) Spark использует архитектуру master/slave (ведущий/ведомый) с центральным координатором, называемым Driver(Драйвер), и набором исполняемых рабочих процессов, называемых Executors, которые расположены на различных узлах кластера. Драйвер Драйвер …">
+
+        <title>Анатомия приложения Apache Spark(YARN)  · sparkman.ru
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.prod.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+
+
+
+    </head>
+    <body>
+        <div id="content">
+            <div class="navbar navbar-static-top">
+                <div class="navbar-inner">
+                    <div class="container-fluid">
+                        <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </a>
+                        <a class="brand" href="/"><span class=site-name>sparkman.ru</span></a>
+                        <div class="nav-collapse collapse">
+                            <ul class="nav pull-right top-menu">
+                                <li >
+                                    <a href=
+                                       "/"
+                                    >Home</a>
+                                </li>
+                                <li ><a href="/categories.html">Categories</a></li>
+                                <li ><a href="/tags.html">Tags</a></li>
+                                <li ><a href="/archives.html">Archives</a></li>
+                                <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <div class="row-fluid">
+                    <div class="span1"></div>
+                    <div class="span10">
+<article itemscope>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+        <h1>
+            <a href="/anatomiia-prilozheniia-apache-sparkyarn.html">
+                Анатомия приложения Apache Spark(YARN)
+            </a>
+        </h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+            
+            <h1>Архитектура</h1>
+<p>Компонентами приложения Spark являются:  </p>
+<ul>
+<li>Driver(Драйвер)</li>
+<li>Application Master(Мастер приложения)</li>
+<li>Spark Context(Контекст) </li>
+<li>Cluster Resource Manager (Менеджер ресурсов кластера) </li>
+<li>Executors (Исполнители)  </li>
+</ul>
+<p>Spark использует архитектуру master/slave (ведущий/ведомый) с центральным координатором,
+называемым Driver(Драйвер), и набором исполняемых рабочих процессов, называемых Executors,
+которые расположены на различных узлах кластера.<br>
+<img alt="image" src="/images/yarn-schema-spark.drawio.png">  </p>
+<h2>Драйвер</h2>
+<p>Драйвер (Driver) отвечает за преобразование пользовательского приложения в более мелкие единицы выполнения, называемые задачами(Task), а затем планирует их запуск с помощью менеджера кластера(YARN) на исполнителях(Executors).
+Драйвер также отвечает за выполнение приложения Spark и возвращает статус/результаты пользователю.<br>
+Драйвер Spark содержит различные компоненты - DAGScheduler, TaskScheduler, BackendScheduler и BlockManager. Они отвечают за преобразование пользовательского кода в реальные задания Spark, выполняемые на кластере.<br>
+<em>Другие свойства драйвера:</em>  </p>
+<ul>
+<li>может выполняться на машине пользователя(deploy-mode client) или на одном из рабочих узлов кластера(deploy-mode cluster)  для обеспечения высокой доступности;</li>
+<li>хранит метаданные обо всех RDD(Resilient Distributed Databases) и их партициях(partitions) – это ключевые концепции Spark ;</li>
+<li>создается после того, как пользователь отправляет Spark-приложение менеджеру кластера (в нашем случае YARN);</li>
+<li>запускается в собственной JVM;</li>
+<li>оптимизирует логические преобразования DAG и, если возможно, поэтапно объединяет их, а также определяет наилучшее место для выполнения этой DAG;</li>
+<li>создает Spark WebUI с подробной информацией о приложении;  </li>
+</ul>
+<h2>Мастер приложений</h2>
+<p>Application Master - это специфическая для каждого распределенного приложения сущность, которой поручено договариваться о ресурсах с ResourceManager и работать с NodeManager для выполнения и мониторинга задач приложения. Каждое приложение, работающее на кластере, имеет свой собственный, выделенный экземпляр Application Master.<br>
+Spark Application Master создается одновременно с Driver на том же узле (в случае deploy-mode cluster), когда пользователь отправляет Spark-приложение с помощью spark-submit.
+Драйвер сообщает мастеру Spark Application Master о потребностях исполнителей(Executors) для приложения, и мастер приложений договаривается с менеджером ресурсов о выделении ресурсов для размещения этих исполнителей.
+В автономном режиме Spark Application Master выступает в роли менеджера кластера.  </p>
+<h2>Spark Контекст</h2>
+<p>Spark Контекст(Spark Context) - это основная точка входа в функциональность Spark, а значит, и сердце любого приложения Spark. Он позволяет Spark Driver получить доступ к кластеру через менеджер ресурсов кластера и может использоваться для создания RDD, аккумуляторов и широковещательных переменных на кластере.<br>
+Spark Context также отслеживает исполнителей в режиме реального времени, регулярно отправляя сообщения heartbeat.  <br>
+Spark Context создается Spark Driver для каждого Spark-приложения и существует в течение всего времени жизни Spark-приложения. <br>
+Spark Context прекращает работу после завершения работы Spark-приложения. Для каждой JVM может быть активен только один Spark Context.<br>
+Начиная с Apache Spark 2.0 появилась новая точка входа, называемая SparkSession.
+Он объединяет SQLContext, HiveContext и StreamingContext. Все API, доступные в этих контекстах, также доступны в SparkSession.  </p>
+<h2>Менеджер ресурсов кластера</h2>
+<p>Менеджер кластера в распределенном приложении Spark - это процесс, который контролирует, управляет и резервирует вычислительные ресурсы в виде контейнеров на кластере. Эти контейнеры резервируются по запросу мастера приложения и выделяются им, когда они освобождаются или становятся доступными.<br>
+После выделения контейнеров менеджером кластера мастер приложений передает ресурсы контейнеров обратно драйверу Spark, а драйвер Spark отвечает за выполнение различных шагов и задач приложения Spark.<br>
+SparkContext может подключаться к различным типам менеджеров кластеров. Сейчас наиболее популярны YARN и Kubernetes.  </p>
+<h2>Исполнители</h2>
+<p>Исполнители - это процессы на рабочих узлах, задачей которых является выполнение поставленных задач. Эти задачи выполняются на рабочих узлах и затем возвращают результат драйверу Spark.<br>
+Исполнители запускаются один раз в начале работы Spark Application и затем работают в течение всего времени существования приложения; Такая инициализация называется Static Allocation of Executors (статическое выделение исполнителей). Однако пользователи также могут выбрать динамическое выделение исполнителей(dynamically allocate executors), при котором они могут добавлять или удалять исполнителей в Spark динамически, чтобы соответствовать общей рабочей нагрузке (но это может повлиять на другие приложения, работающие на кластере). Даже если несколько исполнителей Spark выйдут из строя, приложение Spark сможет продолжить работу.<br>
+<em>Другие свойства исполнителя:</em>  </p>
+<ul>
+<li>хранит данные в кэше в куче JVM или на диске</li>
+<li>считывает данные из внешних источников</li>
+<li>записывает данные во внешние источники</li>
+<li>выполняет всю обработку данных</li>
+</ul>
+<p><em>Ниже представлена большая картинка, демонстрирующая основные компоненты контейнера с драйвером Spark, работающего в кластере YARN.</em><br>
+<img alt="image" src="/images/spark-driver-yarn.PNG">  </p>
+
+
+             
+ 
+            
+            
+            
+
+
+
+
+
+
+            <hr/>
+        </div>
+        <section id="article-sidebar" class="span2">
+            <h4>Published</h4>
+            <time itemprop="dateCreated" datetime="2024-12-05T11:20:00+03:00">дек 5, 2024</time>
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#apache-spark-ref">Apache Spark</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#spark-ref">spark
+                    <span>3</span>
+</a></li>
+                <li><a href="/tags.html#theory-ref">theory
+                    <span>3</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+<div id="sidebar-social-link">
+</div>
+            
+
+
+
+
+
+            
+
+
+
+
+
+        </section>
+</div>
+</article>
+                    </div>
+                    <div class="span1"></div>
+                </div>
+            </div>
+        </div>
+<footer>
+
+
+
+
+    <div id="fpowered">
+        Powered by: <a href="http://getpelican.com/" title="Pelican Home Page" target="_blank" rel="nofollow noopener noreferrer">Pelican</a>
+        Theme: <a href="https://elegant.oncrashreboot.com/" title="Theme Elegant Home Page" target="_blank" rel="nofollow noopener noreferrer">Elegant</a>
+    </div>
+</footer>            <script src="//code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    <script>
+    (function () {
+        if (window.location.hash.match(/^#comment-\d+$/)) {
+            $('#comment_thread').collapse('show');
+        }
+    })();
+    window.onhashchange=function(){
+        if (window.location.hash.match(/^#comment-\d+$/))
+            window.location.reload(true);
+    }
+    $('#comment_thread').on('shown', function () {
+        var link = document.getElementById('comment-accordion-toggle');
+        var old_innerHTML = link.innerHTML;
+        $(link).fadeOut(200, function() {
+            $(this).text('Click here to hide comments').fadeIn(200);
+        });
+        $('#comment_thread').on('hidden', function () {
+            $(link).fadeOut(200, function() {
+                $(this).text(old_innerHTML).fadeIn(200);
+            });
+        })
+    })
+</script>
+
+    </body>
+    <!-- Theme: Elegant built for Pelican
+        License : MIT -->
+</html>
