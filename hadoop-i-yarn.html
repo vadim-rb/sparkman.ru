@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Vadim" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="spark, theory, Apache Spark, " />
+
+<meta property="og:title" content="Hadoop и YARN "/>
+<meta property="og:url" content="/hadoop-i-yarn.html" />
+<meta property="og:description" content="Аналогия с операционной системой Чтобы понять, что такое Hadoop, я проведу аналогию с операционной системой. Традиционная операционная система на высоком уровне состоит из нескольких частей: файловой системы и вычислительного компонента. На одной машине есть файловая система, она может быть разной: FAT32, HPFS, ext2, NFS, ZFS и т.д. Вычислительный компонент …" />
+<meta property="og:site_name" content="sparkman.ru" />
+<meta property="og:article:author" content="Vadim" />
+<meta property="og:article:published_time" content="2024-12-06T12:30:00+03:00" />
+<meta name="twitter:title" content="Hadoop и YARN ">
+<meta name="twitter:description" content="Аналогия с операционной системой Чтобы понять, что такое Hadoop, я проведу аналогию с операционной системой. Традиционная операционная система на высоком уровне состоит из нескольких частей: файловой системы и вычислительного компонента. На одной машине есть файловая система, она может быть разной: FAT32, HPFS, ext2, NFS, ZFS и т.д. Вычислительный компонент …">
+
+        <title>Hadoop и YARN  · sparkman.ru
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.prod.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+
+
+
+    </head>
+    <body>
+        <div id="content">
+            <div class="navbar navbar-static-top">
+                <div class="navbar-inner">
+                    <div class="container-fluid">
+                        <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </a>
+                        <a class="brand" href="/"><span class=site-name>sparkman.ru</span></a>
+                        <div class="nav-collapse collapse">
+                            <ul class="nav pull-right top-menu">
+                                <li >
+                                    <a href=
+                                       "/"
+                                    >Home</a>
+                                </li>
+                                <li ><a href="/categories.html">Categories</a></li>
+                                <li ><a href="/tags.html">Tags</a></li>
+                                <li ><a href="/archives.html">Archives</a></li>
+                                <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <div class="row-fluid">
+                    <div class="span1"></div>
+                    <div class="span10">
+<article itemscope>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+        <h1>
+            <a href="/hadoop-i-yarn.html">
+                Hadoop и YARN
+            </a>
+        </h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+            
+            <h2>Аналогия с операционной системой</h2>
+<p>Чтобы понять, что такое Hadoop, я проведу аналогию с операционной системой. Традиционная операционная система на высоком уровне состоит из нескольких частей: файловой системы и вычислительного компонента.<br>
+На одной машине есть файловая система, она может быть разной: FAT32, HPFS, ext2, NFS, ZFS и т.д. Вычислительный компонент содержит в себе ядро, планировщик, а также процессы, которые позволяют программам работать с данными.<br>
+<img alt="image" src="/images/os.drawio.png"><br>
+Когда мы переносим эту концепцию хранения/обработки данных на уровень кластера Hadoop, мы получаем практически то же разделение, те же два компонента. Но в качестве слоя хранения вместо традиционной файловой системы будет использоваться HDFS - распределенная файловая система Hadoop. А YARN (Yet Another Resource Negotiator) берет на себя роль вычислительного компонента: выполнение, планирование.<br>
+<img alt="image" src="/images/yarn.drawio.png">  </p>
+<h2>Архитектура HDFS</h2>
+<p><img alt="image" src="/images/hdfsarchitecture.png"><br>
+HDFS хранит файлы поблочно. Блоки в HDFS распределены между узлами данных вычислительного кластера. Все блоки (кроме последнего блока файла) имеют одинаковый размер, кроме того блок может быть размещён на нескольких узлах.<br>
+HDFS состоит из двух обязательных компонентов:  </p>
+<ol>
+<li>
+<p>Узел имен (NameNode) - программный код, отвечающий за файловые операции, такие как открытие и закрытие файлов, создание и удаление каталогов.<br>
+Кроме того, NameNode отвечает за:  </p>
+<ul>
+<li>управление пространством имен файловой системы;</li>
+<li>управление доступом со стороны внешних клиентов;</li>
+<li>соответствие между файлами и реплицированными на узлах данных блоками.  </li>
+</ul>
+</li>
+<li>
+<p>Узел данных (DataNode) – программный код, отвечающий за операции уровня файла, такие как: запись и чтение данных, выполнение команд создания, удаления и репликации блоков, полученные от узла NameNode.<br>
+Кроме того, узел DataNode отвечает за:  </p>
+<ul>
+<li>периодическую отправку сообщения о состоянии (heartbeat-сообщения);</li>
+<li>обработку запросов на чтение и запись, поступающие от клиентов файловой системы HDFS, т.к. данные проходят с остальных машин кластера к клиенту мимо узла NameNode.  </li>
+</ul>
+</li>
+</ol>
+<p>HDFS реплицирует блоки файлов для обеспечения отказоустойчивости на уровне блоков. Каждый блок имеет несколько копий в HDFS.  </p>
+<p>Процесс создания (записи) файла HDFS:<br>
+1. Клиент разделяет исходные данные на части размером, равным размеру блока.<br>
+2. Клиент подключается к NameNode и требует начать процедуру записи файла, указав фактор репликации для этого файла.<br>
+3. NameNode возвращает список DataNodes, где следует разместить все реплики первого блока данных.<br>
+4. Клиент посылает запрос на запись первого блока в первую ноду по списку. Если не удается установить соединение, клиент выбирает следующую ноду из списка и так далее.<br>
+5. Первая нода записывает блок и передает его копию в следующую ноду по списку. Эта нода записывает блок и передает его копию следующей ноде и так далее.<br>
+6. После завершения записи блока DataNodes посылают сообщение об успешном завершении операции по цепочке в обратном направлении к клиенту.<br>
+7. После получения первого подтверждения об успешной записи клиент уведомляет NameNode о записи блока и получает список нод для записи второго блока и так далее  </p>
+<p>Процесс чтения файла HDFS:<br>
+1. Клиент обращается к NameNode с запросом о местоположении DataNode, содержащих блоки данных.<br>
+2. NameNode сначала проверяет наличие требуемых привилегий, и если у клиента достаточно привилегий, NameNode отправляет местоположение DataNode, содержащих блоки<br>
+3. Клиент напрямую взаимодействует с DataNode. Клиент отправит запрос ближайшим(происходит выбор наилучшего сетевого маршрута т.к датаноды могут находиться в разных датацентрах на разных континентах) DataNode<br>
+4. Клиент начинает считывать данные из DataNode. Данные будут напрямую передаваться из DataNode клиенту.    </p>
+<h2>Архитектура YARN</h2>
+<p><img alt="image" src="/images/yarn-schema2.drawio.png"><br>
+YARN имеет базовый сервис — ResourceManager . ResourceManager — это “директор”, который принимает решения о распределении ресурсов между всеми приложениями в системе. У него есть служащие, которые работают на всех узлах кластера, называемые NodeManager, обеспечивающие выделение ресурсов по запросу ResourceManager.<br>
+Ресурсы представлены контейнерами - коллекциями физических ресурсов, таких как оперативная память, ядра процессора и дисковое пространство.<br>
+При запуске нового приложения в кластере, ResourceManager выделяет ресурсы для ApplicationMaster . ApplicationMaster — это специфичная для каждого приложения сущность, которой поручено согласование ресурсов с ResourceManager и взаимодействие с NodeManager для запуска приложений в контейнерах и мониторинга процесса их выполнения.<br>
+После запуска ApplicationMaster будет отвечать за весь жизненный цикл распределенного приложения. Прежде всего, он будет отправлять запросы ресурсов в ResourceManager, чтобы получить контейнеры, необходимые для выполнения задач приложения. Запрос ресурсов — это просто запрос на контейнеры, которые соответствуют некоторым требованиям к ресурсам, например:  </p>
+<ul>
+<li>Количество ресурсов, выраженное в мегабайтах памяти и процессорных ядрах.</li>
+<li>Предпочтительное расположение контейнера(имя хоста)</li>
+<li>Приоритет в рамках очереди  </li>
+</ul>
+<p>ApplicationMaster запускается в контейнере, как и любое другое приложение.  ResourceManager хранит информацию о запущенных приложениях и выполненных задачах в HDFS. При перезапуске ResourceManager воссоздает состояние приложений и перезапускает только те задачи, которые не были завершены.  </p>
+<h2>Запуск приложения</h2>
+<p>Давайте рассмотрим последовательность шагов запуска приложения:<br>
+1. Клиентское приложение отправляет приложение, включая необходимые спецификации для запуска ApplicationMaster , специфичного для данного приложения.<br>
+2. ResourceManager запускает ApplicationMaster.<br>
+3. ApplicationMaster регистрируется в ResourceManager . Регистрация позволяет клиентскому приложению запрашивать определенную информацию из ResourceManager , которая позволяет ей напрямую взаимодействовать с ApplicationMaster.<br>
+4. ApplicationMaster запрашивает у ResourceManager подходящие контейнеры для запуска приложения.<br>
+5. После успешного получения контейнеров ApplicationMaster запускает их, предоставляя NodeManager(ам) их конфигурации.<br>
+6. Внутри контейнеров он запускает код пользовательского приложения. Затем NodeManager(ы) предоставляют ему информацию (фазу выполнения, статус) для ApplicationMaster.<br>
+7. Во время выполнения пользовательского приложения клиент взаимодействует с ApplicationMaster для получения статуса приложения.<br>
+8. После завершения работы приложения и выполнения всех необходимых работ ApplicationMaster отменяет регистрацию в ResourceManager и завершает работу, освобождая контейнеры для других целей.  </p>
+
+
+             
+ 
+            
+            
+            
+
+
+
+
+
+
+            <hr/>
+        </div>
+        <section id="article-sidebar" class="span2">
+            <h4>Published</h4>
+            <time itemprop="dateCreated" datetime="2024-12-06T12:30:00+03:00">дек 6, 2024</time>
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#apache-spark-ref">Apache Spark</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#spark-ref">spark
+                    <span>4</span>
+</a></li>
+                <li><a href="/tags.html#theory-ref">theory
+                    <span>4</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+<div id="sidebar-social-link">
+</div>
+            
+
+
+
+
+
+            
+
+
+
+
+
+        </section>
+</div>
+</article>
+                    </div>
+                    <div class="span1"></div>
+                </div>
+            </div>
+        </div>
+<footer>
+
+
+
+
+    <div id="fpowered">
+        Powered by: <a href="http://getpelican.com/" title="Pelican Home Page" target="_blank" rel="nofollow noopener noreferrer">Pelican</a>
+        Theme: <a href="https://elegant.oncrashreboot.com/" title="Theme Elegant Home Page" target="_blank" rel="nofollow noopener noreferrer">Elegant</a>
+    </div>
+</footer>            <script src="//code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    <script>
+    (function () {
+        if (window.location.hash.match(/^#comment-\d+$/)) {
+            $('#comment_thread').collapse('show');
+        }
+    })();
+    window.onhashchange=function(){
+        if (window.location.hash.match(/^#comment-\d+$/))
+            window.location.reload(true);
+    }
+    $('#comment_thread').on('shown', function () {
+        var link = document.getElementById('comment-accordion-toggle');
+        var old_innerHTML = link.innerHTML;
+        $(link).fadeOut(200, function() {
+            $(this).text('Click here to hide comments').fadeIn(200);
+        });
+        $('#comment_thread').on('hidden', function () {
+            $(link).fadeOut(200, function() {
+                $(this).text(old_innerHTML).fadeIn(200);
+            });
+        })
+    })
+</script>
+
+    </body>
+    <!-- Theme: Elegant built for Pelican
+        License : MIT -->
+</html>
