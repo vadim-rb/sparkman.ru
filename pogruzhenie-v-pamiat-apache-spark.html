@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Vadim" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content=", Theory, " />
+
+<meta property="og:title" content="Погружение в память Apache Spark "/>
+<meta property="og:url" content="/pogruzhenie-v-pamiat-apache-spark.html" />
+<meta property="og:description" content="Apache Spark написан на языке программирования Scala. Scala транслирует свой код в байт-код Java для выполнения на JVM(Java Virtual Machine).Поэтому необходимо понимать как устроена модель памяти Java(как JVM управляет памятью). JVM делит память на область стека (stack) и область кучи (heap). Каждый раз, когда мы объявляем новые …" />
+<meta property="og:site_name" content="sparkman.ru" />
+<meta property="og:article:author" content="Vadim" />
+<meta property="og:article:published_time" content="2024-12-11T13:20:00+03:00" />
+<meta name="twitter:title" content="Погружение в память Apache Spark ">
+<meta name="twitter:description" content="Apache Spark написан на языке программирования Scala. Scala транслирует свой код в байт-код Java для выполнения на JVM(Java Virtual Machine).Поэтому необходимо понимать как устроена модель памяти Java(как JVM управляет памятью). JVM делит память на область стека (stack) и область кучи (heap). Каждый раз, когда мы объявляем новые …">
+
+        <title>Погружение в память Apache Spark  · sparkman.ru
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.prod.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+
+
+
+    </head>
+    <body>
+        <div id="content">
+            <div class="navbar navbar-static-top">
+                <div class="navbar-inner">
+                    <div class="container-fluid">
+                        <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </a>
+                        <a class="brand" href="/"><span class=site-name>sparkman.ru</span></a>
+                        <div class="nav-collapse collapse">
+                            <ul class="nav pull-right top-menu">
+                                <li >
+                                    <a href=
+                                       "/"
+                                    >Home</a>
+                                </li>
+                                <li ><a href="/categories.html">Categories</a></li>
+                                <li ><a href="/tags.html">Tags</a></li>
+                                <li ><a href="/archives.html">Archives</a></li>
+                                <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <div class="row-fluid">
+                    <div class="span1"></div>
+                    <div class="span10">
+<article itemscope>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+        <h1>
+            <a href="/pogruzhenie-v-pamiat-apache-spark.html">
+                Погружение в память Apache Spark
+            </a>
+        </h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+            
+            <p>Apache Spark написан на языке программирования Scala. Scala транслирует свой код в байт-код Java для выполнения на JVM(Java Virtual Machine).Поэтому необходимо понимать как устроена модель памяти Java(как JVM управляет памятью).<br>
+JVM делит память на область стека (stack) и область кучи (heap). Каждый раз, когда мы объявляем новые переменные, создаем объекты или вызываем новый метод, JVM выделяет память для этих операций в стеке или в куче.  </p>
+<h2>Cтек</h2>
+<p>Стековая память в Java работает по схеме LIFO (Последний-зашел-Первый-вышел). Всякий раз, когда вызывается метод, в памяти стека создается новый блок, который содержит примитивы и ссылки на другие объекты в методе. Как только метод заканчивает работу, блок также перестает использоваться, тем самым предоставляя доступ для следующего метода.<br>
+Размер стековой памяти намного меньше объема памяти в куче.</p>
+<h2>Куча</h2>
+<p>Эта область памяти используется для динамического выделения памяти для объектов и классов JRE во время выполнения. Новые объекты всегда создаются в куче, а ссылки на них хранятся в стеке. Эти объекты имеют глобальный доступ и могут быть получены из любого места программы.<br>
+<img alt="image" src="/images/stackandheap.drawio.png"><br>
+<em>Разница между Stack и Heap памятью в Java:</em><br>
+- Куча используется всеми частями приложения в то время как стек используется только одним потоком исполнения программы.
+- Всякий раз, когда создается объект, он всегда хранится в куче, а в памяти стека содержится ссылка на него. Память стека содержит только локальные переменные примитивных типов и ссылки на объекты в куче.
+- Объекты в куче доступны с любой точки программы, в то время как стековая память не может быть доступна для других потоков.
+- Управление памятью в стеке осуществляется по схеме LIFO.
+- Стековая память является потокобезопасной, поскольку для каждого потока создается свой отдельный стек
+- Стековая память существует лишь какое-то время работы программы, а память в куче живет с самого начала до конца работы программы.
+- Мы можем использовать -Xms и -Xmx опции JVM, чтобы определить начальный и максимальный размер памяти в куче. Для стека определить размер памяти можно с помощью опции -Xss .
+- Если память стека полностью занята, то Java Runtime бросает java.lang.StackOverflowError, а если память кучи заполнена, то бросается исключение java.lang.OutOfMemoryError: Java Heap Space.
+- Размер памяти стека намного меньше памяти в куче. Из-за простоты распределения памяти (LIFO), стековая память работает намного быстрее кучи.</p>
+<h2>Уровни управления памятью</h2>
+<p>Существует несколько уровней управления памятью - уровень Spark, уровень Yarn, уровень JVM и уровень ОС. Мы будем перескакивать с одного уровня на другой и не будем обсуждать каждый из них подробно, но стоит понимать, какие уровни существуют, чтобы не запутаться.<br>
+<img alt="image" src="/images/memory0.drawio.png"><br>
+При запуске Spark-приложения кластер Spark запускает два процесса - Driver и Executor.<br>
+Драйвер - это главный процесс, отвечающий за создание контекста Spark, отправку заданий Spark и преобразование всего конвейера Spark в вычислительные единицы - задачи. Он также координирует планирование и оркестровку заданий на каждом экзекьюторе.<br>
+Управление памятью драйвера мало чем отличается от типичного процесса JVM и поэтому не будем его рассматривать. Экзекьютор отвечает за выполнение конкретных вычислительных задач на рабочих узлах и возврат результатов драйверу, а также обеспечивает хранение RDD. Посмотрим на управление его внутренней памятью.  </p>
+<h3>Контейнер с экзекьютором</h3>
+<p>При отправке приложения Spark в кластер с помощью Yarn, ResourceManager обрабатывает запросы на память и выделяет контейнер экзекьютору до максимального размера, установленного параметром <strong>yarn.scheduler.maximum-allocation-mb</strong>. Запросы на память, превышающие указанное значение, не будут выполняться.<br>
+На отдельном узле это делает NodeManager. NodeManager имеет верхний предел доступных ему ресурсов, поскольку он ограничен ресурсами одного узла кластера. В Yarn он задается параметром <strong>yarn.nodemanager.resource.memory-mb</strong>. Это объем физической памяти на NodeManager, в МБ, который может быть выделен для контейнеров yarn.<br>
+Один ExecutorContainer - это всего лишь одна JVM. Вся область памяти ExecutorContainer разделена на три секции:<br>
+<img alt="image" src="/images/memory1.drawio.png"><br>
+<strong>Heap memory</strong><br>
+Это объем памяти, указанный в параметре --executor-memory при отправке приложения Spark или при настройке spark.executor.memory. Это максимальная память кучи JVM (Xmx). Объекты здесь освобождаются сборщиком мусора (GC). Далее я буду называть эту часть памяти - память экзекьютора.<br>
+<strong>Off-heap memory</strong><br>
+Spark позволяет использовать память вне кучи для определенных операций. При этом вы можете указать размер памяти вне кучи, которая будет использоваться вашим приложением.<br>
+<strong>Overhead memory</strong><br>
+Это ремень безопасности для приложений Spark. Эта память используется для различных внутренних накладных расходов Spark.  </p>
+<h2>Погружение в кучу</h2>
+<p>Как мы уже говорили, объем памяти, доступный каждому экзекьютору, контролируется параметром spark.executor.memory. Чтобы использовать и управлять этой частью памяти более эффективно, Spark логически и физически разделил эту часть памяти.<br>
+<img alt="image" src="/images/memory2.drawio.png">  </p>
+<h3>Зарезервированная память (Reserved Memory)</h3>
+<p>Spark резервирует эту память для своих собственных нужд. 
+Зарезервированная память жестко закодирована и равна 300 МБ (значение RESERVED_SYSTEM_MEMORY_BYTES в исходном коде). В тестовом окружении (когда установлен spark.testing) мы можем изменить это значение с помощью spark.testing.reservedMemory.  </p>
+<h3>Память хранилища (Storage Memory)</h3>
+<p>Память хранилища используется для кэширования и транслируемых(broadcasting) данных.<br>
+Размер памяти хранилища определяется следующим образом:<br>
+<em>Storage Memory = usableMemory * spark.memory.fraction * spark.memory.storageFraction</em><br>
+По умолчанию память хранилища составляет 30% от всей используемой памяти <em>(1 * 0,6 * 0,5 = 0,3)</em>.</p>
+<h3>Память выполнения (Execution Memory)</h3>
+<p>В основном она используется для хранения временных данных в операциях shuffle, join, sort, aggregation и т. д.
+Скорее всего, если ваша программа работает слишком долго, проблема кроется в нехватке места здесь.<br>
+Размер памяти выполнения определяется следующим образом:<br>
+<em>Execution Memory = usableMemory * spark.memory.fraction * (1 - spark.memory.storageFraction)</em><br>
+Как и память хранения, память выполнения также равна 30 % всей используемой памяти по умолчанию <em>(1 * 0,6 * (1 - 0,5) = 0,3)</em>.</p>
+<h3>Пользовательская память (User Memory)</h3>
+<p>В основном используется для хранения данных, необходимых для трансформаций. В ней хранятся  структуры данных, созданные и управляемые пользовательским кодом.<br>
+Размер пользовательской памяти определяется следующим образом:<br>
+<em>User Memory = usableMemory * (1 - spark.memory.fraction)</em>
+По умолчанию это <em>1 * (1 - 0.6) = 0.4 - 40 %</em> доступной памяти.</p>
+<h2>Механизм динамического заполнения(Dynamic occupancy mechanism)</h2>
+<p>Выполнение и хранение имеют общую память. Они могут одалживать ее друг у друга. Этот процесс называется механизмом динамического заполнения памяти.<br>
+<img alt="image" src="/images/memory3.drawio.png"><br>
+Когда память хранилища не использует весь доступный ей объем, память выполнения может занять столько памяти хранилища, сколько доступно. При возникновении потребности - память хранилища будет ждать, пока ее часть  памяти не будет освобождена процессами экзекьютора.<br>
+<img alt="image" src="/images/memory4.drawio.png"><br>
+Когда память выполнения не используется, хранилище может занять столько памяти выполнения, сколько доступно, пока выполнение не затребует себе место. Когда это происходит, кэшированные блоки вытесняются из памяти до тех пор, пока не будет освобождено достаточно заимствованной памяти, чтобы удовлетворить запрос памяти исполнения.<br>
+Создатели этого механизма решили, что память выполнения имеет приоритет перед памятью хранения. У них были на то причины - выполнение задания важнее, чем кэшированные данные, а при возникновении OutOfMemoryError в процессе выполнения вся программа может потерпеть крах.  </p>
+<h2>Память вне кучи(Off-heap memory)</h2>
+<p>Несмотря на то, что большинство операций происходит полностью в памяти кучи и с могучей помощью GC(сборщик мусора), Spark также позволяет использовать память вне кучи для определенных операций. Эта память не привязана к GC, поэтому в ней отсутствуют накладные расходы памяти: частое сканирование GC, сбор GC и повышается производительность работы с памятью.<br>
+Зная логику приложения, прямая работа с памятью может обеспечить значительный выигрыш в производительности, но также требует тщательного управления этим участком памяти. Это может быть нежелательно или даже невозможно в некоторых сценариях.<br>
+Если память вне кучи включена, у экзекьютора будет как память в куче, так и память вне кучи. Они дополняют друг друга - память выполнения будет суммой памяти выполнения в куче и памятью выполнения вне кучи. То же самое справедливо  и для памяти хранилища.<br>
+В основном же, память вне кучи используется для Tungsten.  <br>
+Tungsten это проект направленный на повышение производительности Spark-приложений за счет повышения эффективности работы процессора и памяти. Tungsten использует собственные сериализаторы/десериализаторы для представления объектов JVM в компактном формате, чтобы обеспечить высокую производительность и малый объем памяти.<br>
+По умолчанию память вне кучи отключена, но вы можете включить ее с помощью параметра <strong>spark.memory.offHeap.enabled</strong> и задать размер памяти с помощью параметра <strong>spark.memory.offHeap.size</strong>. Это не влияет на использование памяти кучи, но следите за тем, чтобы не превысить общий лимит памяти экзекьютора.  <br>
+<img alt="image" src="/images/memory5.drawio.png"><br>
+Модель памяти вне кучи относительно проста. Она включает только память хранилища и память выполнения. Эти две части могут заимствовать память друг у друга, по принципу описанному ранее(Механизм динамического заполнения).  </p>
+<h2>Избыточная память(Overhead memory)</h2>
+<p>При выделении ExecutorContainer в кластерном режиме также выделяется дополнительная память для таких вещей, как накладные расходы VM. Эта память задается с помощью конфигурации <strong>spark.executor.memoryOverhead</strong>. По умолчанию размер составляет 10% от памяти исполнителя с минимальным размером 384 МБ.<br>
+Эта дополнительная память включает память для исполнителей PySpark, когда <strong>spark.executor.pyspark.memory</strong> не настроен.<br>
+В Spark 3.0 эта память не включает в себя память вне кучи.  </p>
+<h2>Формула памяти</h2>
+<p>Общий объем памяти рассчитывается по следующей формуле:<br>
+<em>totalMemMiB = (executorMemoryMiB + memoryOverheadMiB + memoryOffHeapMiB + pysparkMemToUseMiB)</em>
+<img alt="image" src="/images/catalyst7.png">  </p>
+
+
+             
+ 
+            
+            
+            
+
+
+
+
+
+
+            <hr/>
+        </div>
+        <section id="article-sidebar" class="span2">
+            <h4>Published</h4>
+            <time itemprop="dateCreated" datetime="2024-12-11T13:20:00+03:00">дек 11, 2024</time>
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#theory-ref">Theory</a>
+<h4>Contact</h4>
+<div id="sidebar-social-link">
+</div>
+            
+
+
+
+
+
+            
+
+
+
+
+
+        </section>
+</div>
+</article>
+                    </div>
+                    <div class="span1"></div>
+                </div>
+            </div>
+        </div>
+<footer>
+
+
+
+
+    <div id="fpowered">
+        Powered by: <a href="http://getpelican.com/" title="Pelican Home Page" target="_blank" rel="nofollow noopener noreferrer">Pelican</a>
+        Theme: <a href="https://elegant.oncrashreboot.com/" title="Theme Elegant Home Page" target="_blank" rel="nofollow noopener noreferrer">Elegant</a>
+    </div>
+</footer>            <script src="//code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    <script>
+    (function () {
+        if (window.location.hash.match(/^#comment-\d+$/)) {
+            $('#comment_thread').collapse('show');
+        }
+    })();
+    window.onhashchange=function(){
+        if (window.location.hash.match(/^#comment-\d+$/))
+            window.location.reload(true);
+    }
+    $('#comment_thread').on('shown', function () {
+        var link = document.getElementById('comment-accordion-toggle');
+        var old_innerHTML = link.innerHTML;
+        $(link).fadeOut(200, function() {
+            $(this).text('Click here to hide comments').fadeIn(200);
+        });
+        $('#comment_thread').on('hidden', function () {
+            $(link).fadeOut(200, function() {
+                $(this).text(old_innerHTML).fadeIn(200);
+            });
+        })
+    })
+</script>
+
+    </body>
+    <!-- Theme: Elegant built for Pelican
+        License : MIT -->
+</html>
