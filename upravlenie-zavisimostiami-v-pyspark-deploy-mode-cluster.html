@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Vadim" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="venv, cluster, yarn, Notes, " />
+
+<meta property="og:title" content="Управление зависимостями в pyspark (deploy-mode cluster) "/>
+<meta property="og:url" content="/upravlenie-zavisimostiami-v-pyspark-deploy-mode-cluster.html" />
+<meta property="og:description" content="Если вы хотите запустить приложение PySpark на YARN в кластерном режиме, вам необходимо убедиться, что все используемые модули доступны на машинах кластера. В противном случае вы можете получить ошибки, такие как .ModuleNotFoundError: No module named &#39;ИМЯМОДУЛЯ&#39; Вот скрипт myapptest.py который я хочу запустить в кластерном режиме: from pyspark.conf …" />
+<meta property="og:site_name" content="sparkman.ru" />
+<meta property="og:article:author" content="Vadim" />
+<meta property="og:article:published_time" content="2025-01-11T21:25:00+03:00" />
+<meta name="twitter:title" content="Управление зависимостями в pyspark (deploy-mode cluster) ">
+<meta name="twitter:description" content="Если вы хотите запустить приложение PySpark на YARN в кластерном режиме, вам необходимо убедиться, что все используемые модули доступны на машинах кластера. В противном случае вы можете получить ошибки, такие как .ModuleNotFoundError: No module named &#39;ИМЯМОДУЛЯ&#39; Вот скрипт myapptest.py который я хочу запустить в кластерном режиме: from pyspark.conf …">
+
+        <title>Управление зависимостями в pyspark (deploy-mode cluster)  · sparkman.ru
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.prod.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+
+
+
+
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript" >
+       (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+       m[i].l=1*new Date();
+       for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+       k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+       (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+       ym(99823950, "init", {
+            clickmap:true,
+            trackLinks:true,
+            accurateTrackBounce:true,
+            webvisor:true
+       });
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/99823950" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+    </head>
+    <body>
+        <div id="content">
+            <div class="navbar navbar-static-top">
+                <div class="navbar-inner">
+                    <div class="container-fluid">
+                        <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </a>
+                        <a class="brand" href="/"><span class=site-name>sparkman.ru</span></a>
+                        <div class="nav-collapse collapse">
+                            <ul class="nav pull-right top-menu">
+                                <li >
+                                    <a href=
+                                       "/"
+                                    >Home</a>
+                                </li>
+                                <li ><a href="/categories.html">Categories</a></li>
+                                <li ><a href="/tags.html">Tags</a></li>
+                                <li ><a href="/archives.html">Archives</a></li>
+                                <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <div class="row-fluid">
+                    <div class="span1"></div>
+                    <div class="span10">
+<article itemscope>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+        <h1>
+            <a href="/upravlenie-zavisimostiami-v-pyspark-deploy-mode-cluster.html">
+                Управление зависимостями в pyspark (deploy-mode cluster)
+            </a>
+        </h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+            
+            <p>Если вы хотите запустить приложение PySpark на YARN в кластерном режиме, вам необходимо убедиться,
+что все используемые модули доступны на машинах кластера.<br>
+В противном случае вы можете получить ошибки, такие как <em>.ModuleNotFoundError: No module named 'ИМЯМОДУЛЯ'</em><br>
+Вот скрипт <em>myapptest.py</em> который я хочу запустить в кластерном режиме:  </p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">pyspark.conf</span> <span class="kn">import</span> <span class="n">SparkConf</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="kn">import</span> <span class="n">SparkSession</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="kn">import</span> <span class="n">Row</span>
+<span class="kn">import</span> <span class="nn">pyspark</span>
+<span class="kn">from</span> <span class="nn">transliterate</span> <span class="kn">import</span> <span class="n">translit</span> 
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PY VERSION IS </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PY EXEC IS </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Lorem ipsum dolor sit amet&quot;</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">translit</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;ru&#39;</span><span class="p">))</span>
+
+<span class="n">conf</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">SparkConf</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;spark.sql.adaptive.enabled&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">spark</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">SparkSession</span>
+        <span class="o">.</span><span class="n">builder</span>
+        <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">conf</span><span class="o">=</span><span class="n">conf</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">getOrCreate</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="n">sc</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sparkContext</span>
+<span class="n">sc</span><span class="o">.</span><span class="n">setLogLevel</span><span class="p">(</span><span class="s2">&quot;INFO&quot;</span><span class="p">)</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([</span>
+    <span class="n">Row</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;string1&#39;</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">date</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">e</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+    <span class="n">Row</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;string2&#39;</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">date</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">e</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+    <span class="n">Row</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mf">5.</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;string3&#39;</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">date</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">e</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="p">])</span>
+<span class="n">df</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="n">spark</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</code></pre></div>
+
+<p>На машинах кластера отсутствует модуль transliterate.<br>
+Я хочу создать виртуальное окружение(venv) с этой зависимостью и отправить его на кластер. В соответствии со <a href="https://spark.apache.org/docs/latest/api/python/user_guide/python_packaging.html#using-virtualenv">статьей</a>
+делаю следуещее:  </p>
+<div class="highlight"><pre><span></span><code>/opt/conda/envs/python_3.7/bin/python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>pvpvenv
+<span class="nb">source</span><span class="w"> </span>pvpvenv/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>transliterate<span class="w"> </span>venv-pack
+venv-pack<span class="w"> </span>-o<span class="w"> </span>pyspark_venv.tar.gz
+</code></pre></div>
+
+<p>Отправляю на кластер:  </p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">HADOOP_CONF_DIR</span><span class="o">=</span>/etc/hadoop/conf
+<span class="nb">export</span><span class="w"> </span><span class="nv">PYSPARK_PYTHON</span><span class="o">=</span>./environment/bin/python
+/opt/spark3/bin/spark-submit<span class="w"> </span>--master<span class="w"> </span>yarn<span class="w"> </span>--deploy-mode<span class="w"> </span>cluster<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--name<span class="w"> </span>cluster-test<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--conf<span class="w"> </span>spark.yarn.dist.archives<span class="o">=</span>pyspark_venv.tar.gz#environment<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>myapptest.py
+</code></pre></div>
+
+<p>И получаю ошибку:<br>
+<img alt="image" src="/images/errr1.PNG"><br>
+В логах YARN ошибка:<br>
+<img alt="image" src="/images/nomodule_translit.PNG">  </p>
+<h4>Разбор</h4>
+<p>Закомментил импорт transliterate, что бы посмотреть вывод  </p>
+<div class="highlight"><pre><span></span><code><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PY VERSION IS </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PY EXEC IS </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<p><img alt="image" src="/images/errr2.PNG"><br>
+Как видим питон не тот, что передаем в PYSPARK_PYTHON  </p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">PYSPARK_PYTHON</span><span class="o">=</span>./environment/bin/python
+</code></pre></div>
+
+<p>Попробовал запустить, переда путь к питоны через conf  </p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">HADOOP_CONF_DIR</span><span class="o">=</span>/etc/hadoop/conf
+/opt/spark3/bin/spark-submit<span class="w"> </span>--master<span class="w"> </span>yarn<span class="w"> </span>--deploy-mode<span class="w"> </span>cluster<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--name<span class="w"> </span>cluster-test<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--conf<span class="w"> </span>spark.yarn.dist.archives<span class="o">=</span>pyspark_venv.tar.gz#environment<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--conf<span class="w"> </span>spark.pyspark.python<span class="o">=</span>./environment/bin/python<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>myapptest.py
+</code></pre></div>
+
+<p>Ошибка уже другая<br>
+<img alt="image" src="/images/errr3.PNG"><br>
+Детальнее изучив логи, замечаю проблему в симлинках<br>
+<img alt="image" src="/images/yarn_logs_broken_symlink.PNG"><br>
+Распаковываю наш тар-файл и вижу, что симлинки указывают на интерпретатор питона, расположенный на машинке, где я упаковывал
+виртуальное окружение. Конечно в кластере по такому пути питон отсутствует.<br>
+<img alt="image" src="/images/symlink_in_tar.PNG">  </p>
+<h4>Решение</h4>
+<p>Так как venv-pack упаковывает интерпретатор Python как символическую ссылку, то нужно перепаковать наше виртуальное окружение,
+указав правильную ссылку на питон в симлинке.<br>
+Покапавшись немного в параметрах venv-pack нахожу нужную нам опцию <em>--python-prefix</em>. Перепаковываем и запускаем.  </p>
+<div class="highlight"><pre><span></span><code>venv-pack<span class="w"> </span>-o<span class="w"> </span>pyspark_venv.tar.gz<span class="w"> </span>--python-prefix<span class="w"> </span>/opt/anaconda3/
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">HADOOP_CONF_DIR</span><span class="o">=</span>/etc/hadoop/conf
+/opt/spark3/bin/spark-submit<span class="w"> </span>--master<span class="w"> </span>yarn<span class="w"> </span>--deploy-mode<span class="w"> </span>cluster<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--name<span class="w"> </span>cluster-test<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--conf<span class="w"> </span>spark.yarn.dist.archives<span class="o">=</span>pyspark_venv.tar.gz#environment<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--conf<span class="w"> </span>spark.pyspark.python<span class="o">=</span>./environment/bin/python<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>myapptest.py
+</code></pre></div>
+
+<p><img alt="image" src="/images/errr4.PNG"><br>
+Успех)<br>
+Учтите что venv-pack довольно древний и не лишен багов.<br>
+<a href="https://github.com/jcrist/venv-pack/issues/14">Важный баг с симлинками</a></p>
+
+
+             
+ 
+            
+            
+            
+
+
+
+
+
+
+            <hr/>
+        </div>
+        <section id="article-sidebar" class="span2">
+            <h4>Published</h4>
+            <time itemprop="dateCreated" datetime="2025-01-11T21:25:00+03:00">янв 11, 2025</time>
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#notes-ref">Notes</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#cluster-ref">cluster
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#venv-ref">venv
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#yarn-ref">yarn
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+<div id="sidebar-social-link">
+</div>
+            
+
+
+
+
+
+            
+
+
+
+
+
+        </section>
+</div>
+</article>
+                    </div>
+                    <div class="span1"></div>
+                </div>
+            </div>
+        </div>
+<footer>
+
+
+
+
+    <div id="fpowered">
+        Powered by: <a href="http://getpelican.com/" title="Pelican Home Page" target="_blank" rel="nofollow noopener noreferrer">Pelican</a>
+        Theme: <a href="https://elegant.oncrashreboot.com/" title="Theme Elegant Home Page" target="_blank" rel="nofollow noopener noreferrer">Elegant</a>
+    </div>
+</footer>            <script src="//code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    <script>
+    (function () {
+        if (window.location.hash.match(/^#comment-\d+$/)) {
+            $('#comment_thread').collapse('show');
+        }
+    })();
+    window.onhashchange=function(){
+        if (window.location.hash.match(/^#comment-\d+$/))
+            window.location.reload(true);
+    }
+    $('#comment_thread').on('shown', function () {
+        var link = document.getElementById('comment-accordion-toggle');
+        var old_innerHTML = link.innerHTML;
+        $(link).fadeOut(200, function() {
+            $(this).text('Click here to hide comments').fadeIn(200);
+        });
+        $('#comment_thread').on('hidden', function () {
+            $(link).fadeOut(200, function() {
+                $(this).text(old_innerHTML).fadeIn(200);
+            });
+        })
+    })
+</script>
+
+    </body>
+    <!-- Theme: Elegant built for Pelican
+        License : MIT -->
+</html>
